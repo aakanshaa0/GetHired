@@ -1,0 +1,43 @@
+name: Ingest jobs and notify
+
+on:
+  schedule:
+    # Every 30 minutes. GitHub Actions cron can lag under load — treat this
+    # as "at least every ~30-60 min," not exact.
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+      NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - run: npm ci
+
+      # Add one line per enabled source type as adapters are filled in
+      # (Wellfound, Naukri, foundit, LinkedIn) — each is an independent step
+      # so one source failing doesn't block the others.
+      - name: Ingest Telegram sources
+        run: npx tsx scripts/ingest.ts --source=telegram
+        continue-on-error: true
+
+      - name: Score legitimacy
+        run: npx tsx scripts/run-legitimacy-scoring.ts
+
+      - name: Match + notify
+        run: npx tsx scripts/process-new-jobs.ts
