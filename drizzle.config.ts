@@ -1,5 +1,9 @@
 import { defineConfig } from "drizzle-kit";
-import "dotenv/config";
+import { config } from "dotenv";
+
+// Plain `dotenv/config` only reads `.env` — Next.js's `.env.local` convention
+// (used by SETUP.md and .env.local.example) needs the path spelled out.
+config({ path: ".env.local" });
 
 export default defineConfig({
   schema: "./lib/db/schema.ts",

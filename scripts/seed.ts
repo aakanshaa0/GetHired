@@ -1,4 +1,5 @@
-import "dotenv/config";
+import { config } from "dotenv";
+config({ path: ".env.local" });
 import { db } from "../lib/db/client";
 import { companies } from "../lib/db/schema";
 import { normalizeCompanyName } from "../lib/legitimacy/companyCache";

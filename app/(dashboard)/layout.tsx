@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { signOut } from "@/lib/actions";
 
+// Every dashboard page reads live, per-user DB/auth state — never statically
+// prerender any of them. Setting this on the shared layout applies it to all
+// nested pages (jobSources/matches/etc. have no per-request signal of their
+// own, like a cookies() call, that would make Next infer this automatically).
+export const dynamic = "force-dynamic";
+
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/matches", label: "Matches" },

@@ -10,7 +10,7 @@ export interface ParsedSalary {
 const LPA_RANGE = /(\d+(?:\.\d+)?)\s*(?:-|to|–)\s*(\d+(?:\.\d+)?)\s*(?:lpa|lakhs?\s*(?:per\s*annum|p\.?a\.?)?)/i;
 const LPA_SINGLE = /(\d+(?:\.\d+)?)\s*(?:lpa|lakhs?\s*(?:per\s*annum|p\.?a\.?)?)/i;
 const RUPEE_ANNUAL_RANGE =
-  /(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d+)?)\s*(?:-|to|–)\s*(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d+)?)\s*(?:\/?\s*(?:year|annum|yr|pa))/i;
+  /(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d+)?)\s*(?:-|to|–)\s*(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d+)?)\s*(?:\/|per\s*)?\s*(?:year|annum|yr|pa)\b/i;
 const MONTHLY_K_RANGE = /(\d+(?:\.\d+)?)\s*k\s*(?:-|to|–)\s*(\d+(?:\.\d+)?)\s*k\s*(?:\/|per)?\s*month/i;
 const MONTHLY_K_SINGLE = /(\d+(?:\.\d+)?)\s*k\s*(?:\/|per)?\s*month/i;
 const RUPEE_MONTHLY = /(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d+)?)\s*(?:\/|per)?\s*month/i;

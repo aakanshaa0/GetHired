@@ -1,4 +1,5 @@
-import "dotenv/config";
+import { config } from "dotenv";
+config({ path: ".env.local" });
 import { eq, and, notInArray } from "drizzle-orm";
 import { db } from "../lib/db/client";
 import { jobs, matches, cvs, profiles, referralTemplates, notifications } from "../lib/db/schema";

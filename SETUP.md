@@ -4,10 +4,10 @@ Everything below happens in accounts you control — nothing here can be created
 
 ## 1. Supabase (database, auth, CV storage)
 
-1. Create a project at [supabase.com](https://supabase.com) (free tier is fine).
+1. Create a project at [supabase.com](https://supabase.com) (free tier is fine, no card required). Set a database password when prompted — save it somewhere, you'll need it in step 4.
 2. **Project Settings -> API**: copy the "Project URL" and the `anon` `public` key -> these become `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 3. Same page: copy the `service_role` key (keep secret, never expose client-side) -> `SUPABASE_SERVICE_ROLE_KEY`.
-4. **Project Settings -> Database -> Connection string -> URI**: copy it, put your DB password in, -> `DATABASE_URL`.
+4. Connection string: click the **Connect** button (top of the project dashboard, next to the project name — Supabase moved this out of Project Settings, so don't go looking for a "Database" entry in Settings). In the dialog, select **Transaction pooler** (not "Direct connection") and copy the URI. Use the transaction pooler specifically, not direct connection — direct connections are IPv6-only and will silently fail to resolve from IPv4-only environments like GitHub Actions runners; the pooler works everywhere. Replace `[YOUR-PASSWORD]` in the copied string with your database password -> `DATABASE_URL`.
 5. **Authentication -> Providers**: confirm "Email" is enabled. **Authentication -> URL Configuration**: add `http://localhost:3000/auth/callback` (and later your production URL + `/auth/callback`) to Redirect URLs.
 6. **Storage**: create a new bucket named exactly `cvs`. Leave it private (not public) — the app generates short-lived signed URLs to serve downloads.
 
