@@ -1,17 +1,12 @@
 import { notFound } from "next/navigation";
 import { eq, and } from "drizzle-orm";
+import { MapPin, IndianRupee, ExternalLink, Download, ShieldCheck, FileStack } from "lucide-react";
 import { db } from "@/lib/db/client";
 import { matches, jobs, cvs } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
 import { updateMatchStatus, overrideMatchCv, overrideLegitimacy } from "@/lib/actions";
+import { LegitimacyBadge } from "@/components/badges";
 import CopyButton from "./CopyButton";
-
-const VERDICT_BADGE: Record<string, string> = {
-  legit: "✅ Looks legit",
-  suspicious: "⚠️ Suspicious — review before applying",
-  scam: "🚫 Likely scam",
-  unscored: "❔ Not yet scored",
-};
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -46,54 +41,71 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold">
-          {job.title} — {job.companyName}
+        <h1 className="text-2xl font-semibold text-slate-900">
+          {job.title} <span className="text-slate-400">·</span> {job.companyName}
         </h1>
-        <p className="text-sm text-neutral-500">
-          {job.location ?? "Location not stated"}
-          {job.isRemote ? " · remote" : ""} · {job.salaryRawText ?? "salary not stated"} · via {job.sourceType}
+        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
+          <span className="flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5" />
+            {job.location ?? "Not stated"}
+            {job.isRemote ? " · remote" : ""}
+          </span>
+          <span className="flex items-center gap-1">
+            <IndianRupee className="h-3.5 w-3.5" />
+            {job.salaryRawText ?? "Not stated"}
+          </span>
+          <span className="badge-neutral">via {job.sourceType}</span>
         </p>
       </div>
 
-      <section className="rounded-md border border-neutral-200 p-4">
-        <p className="font-medium">{VERDICT_BADGE[job.legitimacyVerdict]}</p>
-        {job.legitimacyReasoning && <p className="mt-1 text-sm text-neutral-600">{job.legitimacyReasoning}</p>}
+      <section className="card p-5">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-slate-400" />
+          <LegitimacyBadge verdict={job.legitimacyVerdict} />
+        </div>
+        {job.legitimacyReasoning && <p className="mt-2 text-sm text-slate-600">{job.legitimacyReasoning}</p>}
         {Array.isArray(job.legitimacyFlags) && job.legitimacyFlags.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
+          <div className="mt-3 flex flex-wrap gap-1.5">
             {(job.legitimacyFlags as string[]).map((flag) => (
-              <span key={flag} className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs">
+              <span key={flag} className="badge-neutral">
                 {flag.replaceAll("_", " ")}
               </span>
             ))}
           </div>
         )}
         {job.legitimacyUserOverride && (
-          <p className="mt-2 text-xs text-neutral-500">
+          <p className="mt-3 text-xs text-slate-500">
             You marked this as {job.legitimacyUserOverride}
             {job.legitimacyOverrideNote ? `: ${job.legitimacyOverrideNote}` : ""}.
           </p>
         )}
-        <div className="mt-3 flex gap-2">
+        <div className="mt-4 flex gap-2">
           <form action={overrideLegitimacy.bind(null, job.id, "approved", "")}>
-            <button type="submit" className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm">
+            <button type="submit" className="btn-secondary text-xs">
               Mark legit anyway
             </button>
           </form>
           <form action={overrideLegitimacy.bind(null, job.id, "rejected", "")}>
-            <button type="submit" className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm">
+            <button type="submit" className="btn-secondary text-xs">
               Mark as scam
             </button>
           </form>
         </div>
       </section>
 
-      <section className="rounded-md border border-neutral-200 p-4">
-        <h2 className="font-medium">CV</h2>
-        <form action={async (formData: FormData) => {
-          "use server";
-          await overrideMatchCv(match.id, String(formData.get("cvId")));
-        }} className="mt-2 flex flex-wrap items-center gap-2">
-          <select name="cvId" defaultValue={selectedCvId ?? ""} className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
+      <section className="card p-5">
+        <h2 className="flex items-center gap-2 font-medium text-slate-900">
+          <FileStack className="h-4 w-4 text-slate-400" />
+          CV
+        </h2>
+        <form
+          action={async (formData: FormData) => {
+            "use server";
+            await overrideMatchCv(match.id, String(formData.get("cvId")));
+          }}
+          className="mt-3 flex flex-wrap items-center gap-2"
+        >
+          <select name="cvId" defaultValue={selectedCvId ?? ""} className="input">
             <option value="" disabled>
               Choose a CV
             </option>
@@ -103,29 +115,30 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
               </option>
             ))}
           </select>
-          <button type="submit" className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm">
+          <button type="submit" className="btn-secondary">
             Use this CV
           </button>
           {cvDownloadUrl && (
-            <a href={cvDownloadUrl} className="text-sm underline" target="_blank" rel="noreferrer">
-              Download selected CV
+            <a href={cvDownloadUrl} className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500" target="_blank" rel="noreferrer">
+              <Download className="h-4 w-4" />
+              Download
             </a>
           )}
         </form>
         {!selectedCv && <p className="mt-2 text-sm text-amber-700">No CV auto-matched — pick one above.</p>}
       </section>
 
-      <section className="rounded-md border border-neutral-200 p-4">
-        <h2 className="font-medium">Referral message</h2>
+      <section className="card p-5">
+        <h2 className="font-medium text-slate-900">Referral message</h2>
         {match.referralText ? (
           <>
-            <textarea readOnly value={match.referralText} rows={6} className="mt-2 w-full rounded-md border border-neutral-300 p-2 text-sm" />
+            <textarea readOnly value={match.referralText} rows={6} className="input mt-3 w-full" />
             <CopyButton text={match.referralText} />
           </>
         ) : (
-          <p className="mt-2 text-sm text-neutral-500">
+          <p className="mt-2 text-sm text-slate-500">
             No default referral template set — add one on the{" "}
-            <a href="/dashboard/templates" className="underline">
+            <a href="/dashboard/templates" className="font-medium text-indigo-600 hover:text-indigo-500">
               Referral templates
             </a>{" "}
             page.
@@ -134,31 +147,26 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
       </section>
 
       <section className="flex flex-wrap items-center gap-3">
-        <a
-          href={job.applyUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white"
-        >
-          Open apply link
+        <a href={job.applyUrl} target="_blank" rel="noreferrer" className="btn-primary">
+          Open apply link <ExternalLink className="h-4 w-4" />
         </a>
         <form action={updateMatchStatus.bind(null, match.id, "applied")}>
-          <button type="submit" className="rounded-md border border-neutral-300 px-4 py-2 text-sm">
+          <button type="submit" className="btn-secondary">
             Mark as applied
           </button>
         </form>
         <form action={updateMatchStatus.bind(null, match.id, "skipped")}>
-          <button type="submit" className="rounded-md border border-neutral-300 px-4 py-2 text-sm">
+          <button type="submit" className="btn-danger">
             Skip
           </button>
         </form>
-        <span className="text-sm text-neutral-500">Status: {match.status}</span>
+        <span className="text-sm text-slate-500">Status: {match.status}</span>
       </section>
 
       {job.descriptionText && (
-        <section className="rounded-md border border-neutral-200 p-4">
-          <h2 className="font-medium">Original posting</h2>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-600">{job.descriptionText}</p>
+        <section className="card p-5">
+          <h2 className="font-medium text-slate-900">Original posting</h2>
+          <p className="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap text-sm text-slate-600">{job.descriptionText}</p>
         </section>
       )}
     </div>

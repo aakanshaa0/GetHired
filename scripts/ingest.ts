@@ -1,10 +1,10 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNotNull } from "drizzle-orm";
 import { db } from "../lib/db/client";
 import { jobSources, rawJobs, jobs, ingestionRuns } from "../lib/db/schema";
 import { getAdapter } from "../lib/adapters/registry";
-import type { SourceType, NormalizedJob } from "../lib/adapters/types";
+import type { SourceType, NormalizedJob, RawJob, JobSourceAdapter } from "../lib/adapters/types";
 import { extractJobFields } from "../lib/llm/extractJobFields";
 import { touchCompany } from "../lib/legitimacy/companyCache";
 
@@ -41,6 +41,57 @@ async function normalizedFromLlmFallback(rawText: string, sourceUrl: string, pos
   };
 }
 
+/**
+ * Normalizes one raw posting and, on success, inserts its `jobs` row —
+ * shared by the fresh-fetch path and the retry-previously-failed path below,
+ * since both end at the same "have RawJob-shaped data, need a normalized
+ * job or a recorded failure" step.
+ */
+async function processRawJob(
+  rawJobId: string,
+  item: RawJob,
+  adapter: JobSourceAdapter,
+  sourceType: SourceType
+): Promise<"normalized" | "skipped"> {
+  let normalized = adapter.normalize(item);
+  if (!normalized) {
+    normalized = await normalizedFromLlmFallback(item.rawText, item.sourceUrl, item.postedAt);
+  }
+
+  if (!normalized) {
+    await db
+      .update(rawJobs)
+      .set({ processed: true, processingError: "Could not extract a job posting from this text" })
+      .where(eq(rawJobs.id, rawJobId));
+    return "skipped";
+  }
+
+  const company = await touchCompany(normalized.companyName);
+
+  await db.insert(jobs).values({
+    rawJobId,
+    sourceType,
+    externalId: item.externalId,
+    title: normalized.title,
+    companyName: normalized.companyName,
+    companyId: company.id,
+    location: normalized.location,
+    isRemote: normalized.isRemote,
+    salaryMin: normalized.salaryMin,
+    salaryMax: normalized.salaryMax,
+    salaryCurrency: normalized.salaryCurrency,
+    salaryPeriod: normalized.salaryPeriod,
+    salaryRawText: normalized.salaryRawText,
+    salaryConfidence: normalized.salaryConfidence,
+    applyUrl: normalized.applyUrl,
+    postedAt: normalized.postedAt,
+    descriptionText: normalized.descriptionText,
+  });
+
+  await db.update(rawJobs).set({ processed: true, processingError: null }).where(eq(rawJobs.id, rawJobId));
+  return "normalized";
+}
+
 async function ingestSource(sourceRow: typeof jobSources.$inferSelect) {
   const adapter = getAdapter(sourceRow.type);
   const [run] = await db.insert(ingestionRuns).values({ sourceId: sourceRow.id }).returning();
@@ -68,43 +119,29 @@ async function ingestSource(sourceRow: typeof jobSources.$inferSelect) {
 
       if (!inserted) continue; // already seen on a prior poll
 
-      let normalized = adapter.normalize(item);
-      if (!normalized) {
-        normalized = await normalizedFromLlmFallback(item.rawText, item.sourceUrl, item.postedAt);
-      }
+      const outcome = await processRawJob(inserted.id, item, adapter, sourceRow.type);
+      if (outcome === "normalized") normalizedCount++;
+    }
 
-      if (!normalized) {
-        await db
-          .update(rawJobs)
-          .set({ processed: true, processingError: "Could not extract a job posting from this text" })
-          .where(eq(rawJobs.id, inserted.id));
-        continue;
-      }
+    // Retry postings that failed extraction on a previous run — e.g. an
+    // API outage or (as happened during setup) a billing/credit problem —
+    // rather than leaving genuine job posts stuck unprocessed forever just
+    // because they lost the race with a transient failure once.
+    const previouslyFailed = await db
+      .select()
+      .from(rawJobs)
+      .where(and(eq(rawJobs.sourceId, sourceRow.id), isNotNull(rawJobs.processingError)));
 
-      const company = await touchCompany(normalized.companyName);
-
-      await db.insert(jobs).values({
-        rawJobId: inserted.id,
-        sourceType: sourceRow.type,
-        externalId: item.externalId,
-        title: normalized.title,
-        companyName: normalized.companyName,
-        companyId: company.id,
-        location: normalized.location,
-        isRemote: normalized.isRemote,
-        salaryMin: normalized.salaryMin,
-        salaryMax: normalized.salaryMax,
-        salaryCurrency: normalized.salaryCurrency,
-        salaryPeriod: normalized.salaryPeriod,
-        salaryRawText: normalized.salaryRawText,
-        salaryConfidence: normalized.salaryConfidence,
-        applyUrl: normalized.applyUrl,
-        postedAt: normalized.postedAt,
-        descriptionText: normalized.descriptionText,
-      });
-
-      await db.update(rawJobs).set({ processed: true }).where(eq(rawJobs.id, inserted.id));
-      normalizedCount++;
+    for (const failedRow of previouslyFailed) {
+      const item: RawJob = {
+        externalId: failedRow.externalId,
+        rawText: failedRow.rawText,
+        rawPayload: (failedRow.rawPayload as Record<string, unknown>) ?? {},
+        sourceUrl: failedRow.sourceUrl ?? "",
+        postedAt: failedRow.fetchedAt,
+      };
+      const outcome = await processRawJob(failedRow.id, item, adapter, sourceRow.type);
+      if (outcome === "normalized") normalizedCount++;
     }
 
     await db
@@ -117,7 +154,11 @@ async function ingestSource(sourceRow: typeof jobSources.$inferSelect) {
       .set({ finishedAt: new Date(), rawCount, normalizedCount })
       .where(eq(ingestionRuns.id, run.id));
 
-    console.log(`[${sourceRow.type}:${sourceRow.name}] fetched ${rawCount}, normalized ${normalizedCount}`);
+    console.log(
+      `[${sourceRow.type}:${sourceRow.name}] fetched ${rawCount}, normalized ${normalizedCount}${
+        previouslyFailed.length > 0 ? ` (retried ${previouslyFailed.length} previously-failed)` : ""
+      }`
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const failures = sourceRow.consecutiveFailures + 1;

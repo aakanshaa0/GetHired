@@ -14,8 +14,8 @@ export default async function ProfilePage() {
 
   return (
     <div className="flex max-w-lg flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Profile</h1>
-      <form action={updateProfileDetails} className="flex flex-col gap-4">
+      <h1 className="text-2xl font-semibold text-slate-900">Profile</h1>
+      <form action={updateProfileDetails} className="card flex flex-col gap-4 p-6">
         <Field label="Full name" name="fullName" defaultValue={profile?.fullName ?? ""} />
         <Field label="College" name="college" defaultValue={profile?.college ?? ""} />
         <Field
@@ -26,7 +26,7 @@ export default async function ProfilePage() {
           defaultValue={profile?.yearsExperience?.toString() ?? ""}
         />
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium" htmlFor="targetRoles">
+          <label className="label" htmlFor="targetRoles">
             Target roles
           </label>
           <input
@@ -34,11 +34,11 @@ export default async function ProfilePage() {
             name="targetRoles"
             defaultValue={profile?.targetRoles?.join(", ") ?? ""}
             placeholder="backend engineer, data analyst"
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            className="input"
           />
-          <p className="text-xs text-neutral-500">Comma-separated. Used as a fallback when a CV has no keywords set.</p>
+          <p className="text-xs text-slate-500">Comma-separated. Used as a fallback when a CV has no keywords set.</p>
         </div>
-        <button type="submit" className="w-fit rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white">
+        <button type="submit" className="btn-primary w-fit">
           Save
         </button>
       </form>
@@ -61,17 +61,10 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium" htmlFor={name}>
+      <label className="label" htmlFor={name}>
         {label}
       </label>
-      <input
-        id={name}
-        name={name}
-        type={type}
-        step={step}
-        defaultValue={defaultValue}
-        className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
-      />
+      <input id={name} name={name} type={type} step={step} defaultValue={defaultValue} className="input" />
     </div>
   );
 }

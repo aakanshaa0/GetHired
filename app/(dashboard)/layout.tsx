@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { signOut } from "@/lib/actions";
+import Sidebar from "@/components/dashboard/Sidebar";
 
 // Every dashboard page reads live, per-user DB/auth state — never statically
 // prerender any of them. Setting this on the shared layout applies it to all
@@ -7,37 +7,15 @@ import { signOut } from "@/lib/actions";
 // own, like a cookies() call, that would make Next infer this automatically).
 export const dynamic = "force-dynamic";
 
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Overview" },
-  { href: "/dashboard/matches", label: "Matches" },
-  { href: "/dashboard/cvs", label: "CVs" },
-  { href: "/dashboard/templates", label: "Referral templates" },
-  { href: "/dashboard/sources", label: "Sources" },
-  { href: "/dashboard/profile", label: "Profile" },
-  { href: "/dashboard/settings", label: "Settings" },
-];
-
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b border-neutral-200">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <span className="text-lg font-semibold">GetHired</span>
-          <form action={signOut}>
-            <button type="submit" className="text-sm text-neutral-500 hover:underline">
-              Sign out
-            </button>
-          </form>
-        </div>
-        <nav className="mx-auto flex max-w-5xl gap-4 overflow-x-auto px-4 pb-3 text-sm">
-          {NAV_ITEMS.map((item) => (
-            <Link key={item.href} href={item.href} className="whitespace-nowrap text-neutral-600 hover:text-neutral-900">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
+    <div className="min-h-screen bg-slate-50">
+      <aside className="border-b border-slate-200 bg-white sm:fixed sm:inset-y-0 sm:left-0 sm:w-60 sm:border-b-0 sm:border-r">
+        <Sidebar onSignOut={signOut} />
+      </aside>
+      <div className="sm:pl-60">
+        <main className="mx-auto max-w-4xl px-4 py-8 sm:px-8">{children}</main>
+      </div>
     </div>
   );
 }

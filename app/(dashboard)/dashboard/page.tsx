@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { eq, and, count } from "drizzle-orm";
+import { Inbox, CheckCircle2, FileStack, Rss, ArrowRight } from "lucide-react";
 import { db } from "@/lib/db/client";
 import { matches, cvs, jobSources, profiles } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
@@ -28,14 +29,14 @@ export default async function DashboardOverviewPage() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Overview</h1>
-        <p className="text-sm text-neutral-500">
+        <h1 className="text-2xl font-semibold text-slate-900">Overview</h1>
+        <p className="text-sm text-slate-500">
           {profile?.fullName ? `Welcome back, ${profile.fullName}.` : "Welcome to GetHired."}
         </p>
       </div>
 
       {needsSetup && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <p className="font-medium">Finish setup to start getting matches:</p>
           <ul className="mt-2 list-inside list-disc">
             {!profile && (
@@ -58,24 +59,25 @@ export default async function DashboardOverviewPage() {
       )}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="New matches" value={suggestedCount.n} />
-        <StatCard label="Applied" value={appliedCount.n} />
-        <StatCard label="CVs on file" value={userCvs.length} />
-        <StatCard label="Active sources" value={enabledSources.length} />
+        <StatCard icon={Inbox} label="New matches" value={suggestedCount.n} />
+        <StatCard icon={CheckCircle2} label="Applied" value={appliedCount.n} />
+        <StatCard icon={FileStack} label="CVs on file" value={userCvs.length} />
+        <StatCard icon={Rss} label="Active sources" value={enabledSources.length} />
       </div>
 
-      <Link href="/dashboard/matches" className="text-sm font-medium underline">
-        View all matches →
+      <Link href="/dashboard/matches" className="flex w-fit items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500">
+        View all matches <ArrowRight className="h-4 w-4" />
       </Link>
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: number }) {
   return (
-    <div className="rounded-md border border-neutral-200 p-4">
-      <div className="text-2xl font-semibold">{value}</div>
-      <div className="text-sm text-neutral-500">{label}</div>
+    <div className="card p-4">
+      <Icon className="h-5 w-5 text-indigo-600" />
+      <div className="mt-3 text-2xl font-semibold text-slate-900">{value}</div>
+      <div className="text-sm text-slate-500">{label}</div>
     </div>
   );
 }

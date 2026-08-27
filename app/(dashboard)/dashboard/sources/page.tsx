@@ -1,3 +1,4 @@
+import { Rss } from "lucide-react";
 import { db } from "@/lib/db/client";
 import { jobSources } from "@/lib/db/schema";
 import { createJobSource, toggleJobSource, deleteJobSource } from "@/lib/actions";
@@ -16,70 +17,78 @@ export default async function SourcesPage() {
   return (
     <div className="flex max-w-2xl flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Job sources</h1>
-        <p className="mt-1 text-sm text-neutral-500">
+        <h1 className="text-2xl font-semibold text-slate-900">Job sources</h1>
+        <p className="mt-1 text-sm text-slate-500">
           Only Telegram is implemented in this pass — the others are wired up in the UI but their adapters are
           stubs (they always return zero results) until a follow-up build fills them in.
         </p>
       </div>
 
-      <ul className="flex flex-col divide-y divide-neutral-200 rounded-md border border-neutral-200">
-        {sources.length === 0 && <li className="p-4 text-sm text-neutral-500">No sources configured yet.</li>}
-        {sources.map((s) => (
-          <li key={s.id} className="flex items-center justify-between gap-4 p-4">
-            <div>
-              <p className="font-medium">
-                {s.name} <span className="text-xs text-neutral-500">({s.type})</span>
-                {!IMPLEMENTED[s.type] && <span className="ml-2 text-xs text-amber-700">not yet implemented</span>}
-              </p>
-              <p className="text-sm text-neutral-500">
-                {s.enabled ? "Enabled" : "Disabled"} · every {s.pollIntervalMinutes}min
-                {s.consecutiveFailures > 0 && ` · ${s.consecutiveFailures} recent failure(s)`}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <form action={toggleJobSource.bind(null, s.id, !s.enabled)}>
-                <button type="submit" className="text-sm underline">
-                  {s.enabled ? "Disable" : "Enable"}
-                </button>
-              </form>
-              <form action={deleteJobSource.bind(null, s.id)}>
-                <button type="submit" className="text-sm text-red-600 underline">
-                  Delete
-                </button>
-              </form>
-            </div>
-          </li>
-        ))}
-      </ul>
+      {sources.length === 0 ? (
+        <div className="card flex flex-col items-center gap-2 p-12 text-center">
+          <Rss className="h-8 w-8 text-slate-300" />
+          <p className="text-sm text-slate-500">No sources configured yet.</p>
+        </div>
+      ) : (
+        <ul className="card flex flex-col divide-y divide-slate-200">
+          {sources.map((s) => (
+            <li key={s.id} className="flex items-center justify-between gap-4 p-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                  <Rss className="h-4.5 w-4.5" />
+                </span>
+                <div>
+                  <p className="font-medium text-slate-900">
+                    {s.name} <span className="text-xs text-slate-500">({s.type})</span>
+                    {!IMPLEMENTED[s.type] && <span className="badge-warning ml-2">not yet implemented</span>}
+                  </p>
+                  <p className="text-sm text-slate-500">
+                    {s.enabled ? "Enabled" : "Disabled"} · every {s.pollIntervalMinutes}min
+                    {s.consecutiveFailures > 0 && ` · ${s.consecutiveFailures} recent failure(s)`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 gap-3">
+                <form action={toggleJobSource.bind(null, s.id, !s.enabled)}>
+                  <button type="submit" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                    {s.enabled ? "Disable" : "Enable"}
+                  </button>
+                </form>
+                <form action={deleteJobSource.bind(null, s.id)}>
+                  <button type="submit" className="text-sm font-medium text-rose-600 hover:text-rose-500">
+                    Delete
+                  </button>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
 
-      <form action={createJobSource} className="flex flex-col gap-3 rounded-md border border-neutral-200 p-4">
-        <h2 className="font-medium">Add a source</h2>
-        <select name="type" className="rounded-md border border-neutral-300 px-3 py-2 text-sm">
+      <form action={createJobSource} className="card flex flex-col gap-3 p-6">
+        <h2 className="flex items-center gap-2 font-medium text-slate-900">
+          <Rss className="h-4 w-4 text-slate-400" />
+          Add a source
+        </h2>
+        <select name="type" className="input">
           <option value="telegram">Telegram</option>
           <option value="naukri">Naukri.com (not yet implemented)</option>
           <option value="wellfound">Wellfound (not yet implemented)</option>
           <option value="linkedin">LinkedIn (not yet implemented)</option>
           <option value="foundit">foundit (not yet implemented)</option>
         </select>
-        <input
-          type="text"
-          name="name"
-          required
-          placeholder="Label, e.g. 'Hiring India channel'"
-          className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
-        />
+        <input type="text" name="name" required placeholder="Label, e.g. 'Hiring India channel'" className="input" />
         <textarea
           name="config"
           required
           rows={3}
           placeholder={'{"channel": "somechannelusername"}'}
-          className="rounded-md border border-neutral-300 px-3 py-2 font-mono text-sm"
+          className="input font-mono"
         />
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-slate-500">
           For Telegram, config is <code>{'{"channel": "<public channel username, no @>"}'}</code>.
         </p>
-        <button type="submit" className="w-fit rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white">
+        <button type="submit" className="btn-primary w-fit">
           Add source
         </button>
       </form>
