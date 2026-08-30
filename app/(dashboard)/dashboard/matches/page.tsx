@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { eq, desc } from "drizzle-orm";
+import { eq, inArray, desc } from "drizzle-orm";
 import { MapPin, IndianRupee, Inbox } from "lucide-react";
 import { db } from "@/lib/db/client";
 import { matches, jobs } from "@/lib/db/schema";
@@ -15,6 +15,15 @@ export default async function MatchesPage() {
     .innerJoin(jobs, eq(matches.jobId, jobs.id))
     .where(eq(matches.userId, user.id))
     .orderBy(desc(matches.createdAt));
+
+  // Clears the sidebar's "new matches" badge on this visit — uses the
+  // already-fetched `rows` snapshot for rendering below, so items still show
+  // their real "New" status for this pageview even though the DB now
+  // reflects them as viewed.
+  const newMatchIds = rows.filter((r) => r.match.status === "suggested").map((r) => r.match.id);
+  if (newMatchIds.length > 0) {
+    await db.update(matches).set({ status: "viewed", updatedAt: new Date() }).where(inArray(matches.id, newMatchIds));
+  }
 
   return (
     <div className="flex flex-col gap-6">

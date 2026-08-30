@@ -11,6 +11,7 @@ import {
   Settings,
   Briefcase,
   LogOut,
+  Bell,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -22,17 +23,37 @@ const NAV_ITEMS = [
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
-export default function Sidebar({ onSignOut }: { onSignOut: () => Promise<void> }) {
+export default function Sidebar({
+  onSignOut,
+  newMatchCount,
+}: {
+  onSignOut: () => Promise<void>;
+  newMatchCount: number;
+}) {
   const pathname = usePathname();
 
   return (
     <div className="flex h-full flex-col">
-      <Link href="/" className="flex items-center gap-2 px-5 py-5 font-semibold text-slate-900">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600 text-white">
-          <Briefcase className="h-4.5 w-4.5" />
-        </span>
-        GetHired
-      </Link>
+      <div className="flex items-center justify-between px-5 py-5">
+        <Link href="/" className="flex items-center gap-2 font-semibold text-slate-900">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600 text-white">
+            <Briefcase className="h-4.5 w-4.5" />
+          </span>
+          GetHired
+        </Link>
+        <Link
+          href="/dashboard/matches"
+          aria-label={newMatchCount > 0 ? `${newMatchCount} new match${newMatchCount === 1 ? "" : "es"}` : "Matches"}
+          className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+        >
+          <Bell className="h-4.5 w-4.5" />
+          {newMatchCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold leading-none text-white">
+              {newMatchCount > 9 ? "9+" : newMatchCount}
+            </span>
+          )}
+        </Link>
+      </div>
 
       <nav className="flex flex-1 flex-col gap-0.5 overflow-x-auto px-3 sm:overflow-visible">
         <div className="flex gap-0.5 sm:flex-col">
