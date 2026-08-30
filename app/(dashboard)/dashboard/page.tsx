@@ -3,14 +3,11 @@ import { eq, and, count } from "drizzle-orm";
 import { Inbox, CheckCircle2, FileStack, Rss, ArrowRight } from "lucide-react";
 import { db } from "@/lib/db/client";
 import { matches, cvs, jobSources, profiles } from "@/lib/db/schema";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/supabase/server";
 
 export default async function DashboardOverviewPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const userId = user!.id;
+  const user = await requireUser();
+  const userId = user.id;
 
   const [profile] = await db.select().from(profiles).where(eq(profiles.id, userId));
   const [suggestedCount] = await db
@@ -65,7 +62,7 @@ export default async function DashboardOverviewPage() {
         <StatCard icon={Rss} label="Active sources" value={enabledSources.length} />
       </div>
 
-      <Link href="/dashboard/matches" className="flex w-fit items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500">
+      <Link href="/dashboard/matches" className="flex w-fit items-center gap-1.5 text-sm font-medium text-teal-600 hover:text-teal-500">
         View all matches <ArrowRight className="h-4 w-4" />
       </Link>
     </div>
@@ -75,7 +72,7 @@ export default async function DashboardOverviewPage() {
 function StatCard({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: number }) {
   return (
     <div className="card p-4">
-      <Icon className="h-5 w-5 text-indigo-600" />
+      <Icon className="h-5 w-5 text-teal-600" />
       <div className="mt-3 text-2xl font-semibold text-slate-900">{value}</div>
       <div className="text-sm text-slate-500">{label}</div>
     </div>

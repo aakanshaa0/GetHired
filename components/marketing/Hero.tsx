@@ -8,14 +8,14 @@ export default function Hero() {
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background:
-            "radial-gradient(60% 50% at 50% -10%, rgba(79,70,229,0.12), transparent), radial-gradient(40% 40% at 90% 10%, rgba(99,102,241,0.10), transparent)",
+            "radial-gradient(60% 50% at 50% -10%, rgba(13,148,136,0.12), transparent), radial-gradient(40% 40% at 90% 10%, rgba(20,184,166,0.10), transparent)",
         }}
       />
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 sm:py-28 lg:grid-cols-2">
         <div>
           <span className="badge-neutral">One dashboard, every job source</span>
           <h1 className="mt-5 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
-            Every good opening, <span className="text-indigo-600">before it&apos;s gone.</span>
+            Every good opening, <span className="text-teal-600">before it&apos;s gone.</span>
           </h1>
           <p className="mt-5 max-w-lg text-lg text-slate-600">
             GetHired watches Telegram channels, Naukri, Wellfound, LinkedIn, and foundit for roles
@@ -34,7 +34,7 @@ export default function Hero() {
             {["No auto-apply spam", "Scam screening on every listing", "Your templates, your voice"].map(
               (item) => (
                 <li key={item} className="flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-indigo-600" />
+                  <CheckCircle2 className="h-4 w-4 text-teal-600" />
                   {item}
                 </li>
               )
@@ -43,7 +43,7 @@ export default function Hero() {
         </div>
 
         <div className="relative mx-auto w-full max-w-sm">
-          <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-br from-indigo-100 to-transparent blur-2xl" />
+          <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-br from-teal-100 to-transparent blur-2xl" />
           <div className="card p-5">
             <div className="flex items-start justify-between">
               <div>
@@ -64,7 +64,7 @@ export default function Hero() {
               </p>
             </div>
             <div className="mt-4 flex gap-2">
-              <span className="flex-1 rounded-lg bg-indigo-600 py-2 text-center text-xs font-medium text-white">
+              <span className="flex-1 rounded-lg bg-teal-600 py-2 text-center text-xs font-medium text-white">
                 Open apply link
               </span>
               <span className="rounded-lg border border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-700">

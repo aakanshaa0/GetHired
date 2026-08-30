@@ -3,23 +3,21 @@ import { eq, and } from "drizzle-orm";
 import { MapPin, IndianRupee, ExternalLink, Download, ShieldCheck, FileStack } from "lucide-react";
 import { db } from "@/lib/db/client";
 import { matches, jobs, cvs } from "@/lib/db/schema";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, requireUser } from "@/lib/supabase/server";
 import { updateMatchStatus, overrideMatchCv, overrideLegitimacy } from "@/lib/actions";
 import { LegitimacyBadge } from "@/components/badges";
 import CopyButton from "./CopyButton";
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const user = await requireUser();
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   const [row] = await db
     .select({ match: matches, job: jobs })
     .from(matches)
     .innerJoin(jobs, eq(matches.jobId, jobs.id))
-    .where(and(eq(matches.id, id), eq(matches.userId, user!.id)));
+    .where(and(eq(matches.id, id), eq(matches.userId, user.id)));
 
   if (!row) notFound();
   const { match, job } = row;
@@ -28,7 +26,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
     await db.update(matches).set({ status: "viewed", updatedAt: new Date() }).where(eq(matches.id, match.id));
   }
 
-  const userCvs = await db.select().from(cvs).where(eq(cvs.userId, user!.id));
+  const userCvs = await db.select().from(cvs).where(eq(cvs.userId, user.id));
   const selectedCvId = match.cvIdOverride ?? match.cvId;
   const selectedCv = userCvs.find((c) => c.id === selectedCvId) ?? null;
 
@@ -119,7 +117,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
             Use this CV
           </button>
           {cvDownloadUrl && (
-            <a href={cvDownloadUrl} className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500" target="_blank" rel="noreferrer">
+            <a href={cvDownloadUrl} className="flex items-center gap-1.5 text-sm font-medium text-teal-600 hover:text-teal-500" target="_blank" rel="noreferrer">
               <Download className="h-4 w-4" />
               Download
             </a>
@@ -138,7 +136,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
         ) : (
           <p className="mt-2 text-sm text-slate-500">
             No default referral template set — add one on the{" "}
-            <a href="/dashboard/templates" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <a href="/dashboard/templates" className="font-medium text-teal-600 hover:text-teal-500">
               Referral templates
             </a>{" "}
             page.

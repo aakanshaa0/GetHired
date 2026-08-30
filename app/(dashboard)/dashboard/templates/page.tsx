@@ -2,17 +2,14 @@ import { eq } from "drizzle-orm";
 import { MessageSquareText } from "lucide-react";
 import { db } from "@/lib/db/client";
 import { referralTemplates } from "@/lib/db/schema";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/supabase/server";
 import { createReferralTemplate, deleteReferralTemplate, setDefaultTemplate } from "@/lib/actions";
 import { TEMPLATE_PLACEHOLDERS } from "@/lib/notifications/templateRenderer";
 
 export default async function TemplatesPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await requireUser();
 
-  const templates = await db.select().from(referralTemplates).where(eq(referralTemplates.userId, user!.id));
+  const templates = await db.select().from(referralTemplates).where(eq(referralTemplates.userId, user.id));
 
   return (
     <div className="flex max-w-2xl flex-col gap-8">
@@ -40,7 +37,7 @@ export default async function TemplatesPage() {
                 <div className="flex gap-3">
                   {!t.isDefault && (
                     <form action={setDefaultTemplate.bind(null, t.id)}>
-                      <button type="submit" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                      <button type="submit" className="text-sm font-medium text-teal-600 hover:text-teal-500">
                         Set default
                       </button>
                     </form>

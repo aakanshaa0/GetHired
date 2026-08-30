@@ -43,7 +43,7 @@ export default function Features() {
       <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {FEATURES.map(({ icon: Icon, title, description }) => (
           <div key={title} className="card p-6">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
               <Icon className="h-5 w-5" />
             </span>
             <h3 className="mt-4 font-semibold text-slate-900">{title}</h3>

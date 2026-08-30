@@ -3,20 +3,17 @@ import { eq, desc } from "drizzle-orm";
 import { MapPin, IndianRupee, Inbox } from "lucide-react";
 import { db } from "@/lib/db/client";
 import { matches, jobs } from "@/lib/db/schema";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/supabase/server";
 import { LegitimacyBadge, StatusBadge } from "@/components/badges";
 
 export default async function MatchesPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await requireUser();
 
   const rows = await db
     .select({ match: matches, job: jobs })
     .from(matches)
     .innerJoin(jobs, eq(matches.jobId, jobs.id))
-    .where(eq(matches.userId, user!.id))
+    .where(eq(matches.userId, user.id))
     .orderBy(desc(matches.createdAt));
 
   return (

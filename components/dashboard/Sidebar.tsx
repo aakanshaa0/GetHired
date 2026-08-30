@@ -30,7 +30,7 @@ export default function Sidebar({ onSignOut }: { onSignOut: () => Promise<void> 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 px-5 py-5 font-semibold text-slate-900">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600 text-white">
           <Briefcase className="h-4.5 w-4.5" />
         </span>
         GetHired
@@ -45,7 +45,7 @@ export default function Sidebar({ onSignOut }: { onSignOut: () => Promise<void> 
                 key={href}
                 href={href}
                 className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-                  isActive ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  isActive ? "bg-teal-50 text-teal-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 }`}
               >
                 <Icon className="h-4 w-4 shrink-0" />

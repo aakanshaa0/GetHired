@@ -34,7 +34,7 @@ export default async function SourcesPage() {
           {sources.map((s) => (
             <li key={s.id} className="flex items-center justify-between gap-4 p-4">
               <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
                   <Rss className="h-4.5 w-4.5" />
                 </span>
                 <div>
@@ -50,7 +50,7 @@ export default async function SourcesPage() {
               </div>
               <div className="flex shrink-0 gap-3">
                 <form action={toggleJobSource.bind(null, s.id, !s.enabled)}>
-                  <button type="submit" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                  <button type="submit" className="text-sm font-medium text-teal-600 hover:text-teal-500">
                     {s.enabled ? "Disable" : "Enable"}
                   </button>
                 </form>

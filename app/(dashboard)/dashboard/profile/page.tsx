@@ -1,16 +1,13 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { profiles } from "@/lib/db/schema";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/supabase/server";
 import { updateProfileDetails } from "@/lib/actions";
 
 export default async function ProfilePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await requireUser();
 
-  const [profile] = await db.select().from(profiles).where(eq(profiles.id, user!.id));
+  const [profile] = await db.select().from(profiles).where(eq(profiles.id, user.id));
 
   return (
     <div className="flex max-w-lg flex-col gap-6">

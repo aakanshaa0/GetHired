@@ -51,7 +51,18 @@ export async function updateSalaryThreshold(formData: FormData) {
 
 export async function deleteCv(cvId: string) {
   const userId = await requireUserId();
+
+  const [cv] = await db
+    .select()
+    .from(cvs)
+    .where(and(eq(cvs.id, cvId), eq(cvs.userId, userId)));
+  if (!cv) return;
+
   await db.delete(cvs).where(and(eq(cvs.id, cvId), eq(cvs.userId, userId)));
+
+  const supabase = await createClient();
+  await supabase.storage.from("cvs").remove([cv.storagePath]);
+
   revalidatePath("/dashboard/cvs");
 }
 

@@ -2,16 +2,13 @@ import { eq } from "drizzle-orm";
 import { FileStack, Upload } from "lucide-react";
 import { db } from "@/lib/db/client";
 import { cvs } from "@/lib/db/schema";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/supabase/server";
 import { deleteCv, setDefaultCv } from "@/lib/actions";
 
 export default async function CvsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await requireUser();
 
-  const userCvs = await db.select().from(cvs).where(eq(cvs.userId, user!.id));
+  const userCvs = await db.select().from(cvs).where(eq(cvs.userId, user.id));
 
   return (
     <div className="flex max-w-2xl flex-col gap-8">
@@ -27,7 +24,7 @@ export default async function CvsPage() {
           {userCvs.map((cv) => (
             <li key={cv.id} className="flex items-center justify-between gap-4 p-4">
               <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
                   <FileStack className="h-4.5 w-4.5" />
                 </span>
                 <div>
@@ -43,7 +40,7 @@ export default async function CvsPage() {
               <div className="flex shrink-0 gap-2">
                 {!cv.isDefault && (
                   <form action={setDefaultCv.bind(null, cv.id)}>
-                    <button type="submit" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                    <button type="submit" className="text-sm font-medium text-teal-600 hover:text-teal-500">
                       Set default
                     </button>
                   </form>

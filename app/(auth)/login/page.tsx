@@ -33,7 +33,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-sm">
         <Link href="/" className="mb-8 flex items-center justify-center gap-2 font-semibold text-slate-900">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600 text-white">
             <Briefcase className="h-4.5 w-4.5" />
           </span>
           GetHired
