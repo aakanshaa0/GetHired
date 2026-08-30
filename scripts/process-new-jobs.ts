@@ -2,11 +2,12 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 import { eq, and, notInArray } from "drizzle-orm";
 import { db } from "../lib/db/client";
-import { jobs, matches, cvs, profiles, referralTemplates, notifications } from "../lib/db/schema";
+import { jobs, matches, cvs, profiles, referralTemplates, notifications, pushSubscriptions } from "../lib/db/schema";
 import { evaluateSalary } from "../lib/matching/salaryFilter";
 import { pickBestCv } from "../lib/matching/cvMatcher";
 import { buildApplicationPackage } from "../lib/matching/buildApplicationPackage";
 import { sendMatchEmail, sendDigestEmail } from "../lib/notifications/email";
+import { sendPushNotification } from "../lib/notifications/push";
 import { createAdminClient } from "../lib/supabase/admin";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -16,6 +17,34 @@ async function getUserEmail(userId: string): Promise<string | null> {
   const { data, error } = await admin.auth.admin.getUserById(userId);
   if (error || !data?.user?.email) return null;
   return data.user.email;
+}
+
+/**
+ * Web push carries only title/company + a deep link — rich content (CV
+ * pick, referral text, legitimacy reasoning) stays in-app, matching the
+ * plan's scope for this channel. Only used for instant (above-threshold)
+ * matches; digest items stay email-only rather than firing one push per
+ * batched item.
+ */
+async function notifyPushSubscribers(userId: string, job: { title: string; companyName: string }, matchUrl: string) {
+  const subs = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+  if (subs.length === 0) return null;
+
+  const results = await Promise.all(
+    subs.map(async (sub) => {
+      const result = await sendPushNotification(sub, {
+        title: `${job.title} at ${job.companyName}`,
+        body: "New match — tap to view",
+        url: matchUrl,
+      });
+      if (!result.ok && result.expired) {
+        await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, sub.id));
+      }
+      return result;
+    })
+  );
+
+  return results.some((r) => r.ok) ? "sent" : "failed";
 }
 
 async function main() {
@@ -100,6 +129,17 @@ async function main() {
             .update(notifications)
             .set({ status: "failed", error: err instanceof Error ? err.message : String(err) })
             .where(eq(notifications.id, notif.id));
+        }
+
+        const pushStatus = await notifyPushSubscribers(profile.id, job, matchUrl);
+        if (pushStatus) {
+          await db.insert(notifications).values({
+            matchId: match.id,
+            channel: "web_push",
+            status: pushStatus,
+            sentAt: pushStatus === "sent" ? new Date() : undefined,
+            payload: { instant: true },
+          });
         }
       } else {
         const [notif] = await db

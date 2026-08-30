@@ -28,7 +28,15 @@ Create a key at [console.anthropic.com](https://console.anthropic.com) -> `ANTHR
 
 Create an account at [resend.com](https://resend.com) and an API key -> `RESEND_API_KEY`. For real use, verify a sending domain (Resend -> Domains) and set `RESEND_FROM_EMAIL` to an address on it; for quick testing you can leave the default `onboarding@resend.dev` sender, which only delivers to the email you signed up with.
 
-## 4. Local development
+## 4. Web push (VAPID keys)
+
+No account needed — generate a keypair locally:
+```
+node -e "console.log(require('web-push').generateVAPIDKeys())"
+```
+Set `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` from the output, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` to the same public key value, and `VAPID_SUBJECT` to `mailto:` + your email (required by the push spec so push services can contact you if something's wrong). The private key must never be exposed client-side or committed.
+
+## 5. Local development
 
 1. Copy `.env.local.example` to `.env.local` and fill in everything from steps 1-3, plus `NEXT_PUBLIC_APP_URL=http://localhost:3000`.
 2. `npm install`
@@ -41,7 +49,7 @@ Create an account at [resend.com](https://resend.com) and an API key -> `RESEND_
    values ('telegram', 'My channel', '{"channel": "the_channel_username"}', true, 30);
    ```
    via the Supabase SQL Editor, or with `psql "$DATABASE_URL" -c "..."` / any Postgres client using the connection string from step 1.4.
-7. Fill in your **Profile**, upload a **CV**, add a default **Referral template**.
+7. Fill in your **Profile**, upload a **CV**, add a default **Referral template**. On **Settings**, click "Enable push notifications on this device" if you want browser push alongside email — it'll ask for notification permission.
 8. Manually run the pipeline once to test end-to-end:
    ```
    npx tsx scripts/ingest.ts --source=telegram
@@ -50,18 +58,18 @@ Create an account at [resend.com](https://resend.com) and an API key -> `RESEND_
    ```
    Check the **Matches** page and your inbox.
 
-## 5. Deploy (Vercel + GitHub Actions)
+## 6. Deploy (Vercel + GitHub Actions)
 
 1. Push this repo to a GitHub repository you own.
 2. Import it into [Vercel](https://vercel.com/new). Add the same env vars from `.env.local` in the Vercel project settings (Settings -> Environment Variables), with `NEXT_PUBLIC_APP_URL` set to your Vercel production URL. Deploy.
 3. Add that same production URL + `/auth/callback` to Supabase's Redirect URLs (step 1.5 above).
-4. In the GitHub repo -> **Settings -> Secrets and variables -> Actions**, add these repository secrets: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_URL` (your Vercel URL).
+4. In the GitHub repo -> **Settings -> Secrets and variables -> Actions**, add these repository secrets: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_URL` (your Vercel URL), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`.
 5. The `.github/workflows/ingest-telegram.yml` workflow runs every ~30 minutes automatically once these secrets exist. You can also trigger it manually from the repo's **Actions** tab ("Run workflow") to test it without waiting.
 
 ## What's implemented vs. stubbed
 
-Only the **Telegram** source adapter is functional (scrapes public `t.me/s/<channel>` preview pages — no login needed). **Naukri, Wellfound, LinkedIn, and foundit** are wired into the UI and database but their adapters currently return zero results — see the comments at the top of each file in `lib/adapters/` for the intended approach and recommended build order (Wellfound -> Naukri -> foundit -> LinkedIn last, since LinkedIn is the most fragile/highest-ToS-risk to scrape). Adding one is a matter of implementing `fetchRaw`/`normalize` in that file; nothing else in the pipeline needs to change.
+Only the **Telegram** source adapter is functional (scrapes public `t.me/s/<channel>` preview pages — no login needed). **Naukri, Wellfound, LinkedIn, and foundit** are stubbed in `lib/adapters/` and currently return zero results — see the comments at the top of each file for the intended approach and recommended build order (Wellfound -> Naukri -> foundit -> LinkedIn last, since LinkedIn is the most fragile/highest-ToS-risk to scrape). Sources are added directly in the database (§5.6 above), not through the app UI. Adding an adapter is a matter of implementing `fetchRaw`/`normalize` in that file; nothing else in the pipeline needs to change.
 
-**Web push notifications** are not implemented in this pass (email only). Adding them later means: generate a VAPID key pair, add a subscribe button + service worker, and send via the `web-push` package (already installed) from `scripts/process-new-jobs.ts`.
+**Web push notifications are implemented** (Phase 2) — instant (above-threshold) matches send both email and, for any device where the user clicked "Enable push notifications" on Settings, a push notification carrying just the job title/company and a deep link. Digest (unknown-salary) matches stay email-only.
 
 **No autonomous auto-apply.** The app never logs into or submits forms on LinkedIn/Naukri/Wellfound/foundit — by design, since that violates their Terms of Service and risks your account. Every match ends at a real "Open apply link" you click yourself, with the CV and referral message already prepared.

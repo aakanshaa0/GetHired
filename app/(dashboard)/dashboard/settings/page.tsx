@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { profiles } from "@/lib/db/schema";
 import { requireUser } from "@/lib/supabase/server";
 import { updateSalaryThreshold } from "@/lib/actions";
+import PushSubscribeButton from "@/components/dashboard/PushSubscribeButton";
 
 export default async function SettingsPage() {
   const user = await requireUser();
@@ -41,9 +42,11 @@ export default async function SettingsPage() {
           <Bell className="h-4 w-4 text-slate-400" />
           Push notifications
         </h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Not yet available — Phase 1 ships email notifications only. See SETUP.md for the Phase 2 plan.
+        <p className="mt-1 mb-3 text-sm text-slate-500">
+          Get an instant browser notification the moment a match comes in, on top of email. Per-device — enable it
+          on each browser/phone you want notified.
         </p>
+        <PushSubscribeButton />
       </div>
     </div>
   );
