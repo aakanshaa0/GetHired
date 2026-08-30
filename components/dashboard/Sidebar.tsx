@@ -7,7 +7,6 @@ import {
   Inbox,
   FileStack,
   MessageSquareText,
-  Rss,
   UserRound,
   Settings,
   Briefcase,
@@ -19,7 +18,6 @@ const NAV_ITEMS = [
   { href: "/dashboard/matches", label: "Matches", icon: Inbox },
   { href: "/dashboard/cvs", label: "CVs", icon: FileStack },
   { href: "/dashboard/templates", label: "Referral templates", icon: MessageSquareText },
-  { href: "/dashboard/sources", label: "Sources", icon: Rss },
   { href: "/dashboard/profile", label: "Profile", icon: UserRound },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];

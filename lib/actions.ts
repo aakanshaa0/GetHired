@@ -3,7 +3,7 @@
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "./db/client";
-import { profiles, cvs, referralTemplates, jobSources, matches, jobs } from "./db/schema";
+import { profiles, cvs, referralTemplates, matches, jobs } from "./db/schema";
 import { createClient } from "./supabase/server";
 
 async function requireUserId(): Promise<string> {
@@ -107,34 +107,10 @@ export async function setDefaultTemplate(id: string) {
   revalidatePath("/dashboard/templates");
 }
 
-export async function createJobSource(formData: FormData) {
-  await requireUserId();
-  const type = String(formData.get("type") ?? "") as (typeof jobSources.$inferInsert)["type"];
-  const name = String(formData.get("name") ?? "").trim();
-  const configRaw = String(formData.get("config") ?? "{}");
-
-  let config: Record<string, unknown>;
-  try {
-    config = JSON.parse(configRaw);
-  } catch {
-    throw new Error("Config must be valid JSON");
-  }
-
-  await db.insert(jobSources).values({ type, name, config });
-  revalidatePath("/dashboard/sources");
-}
-
-export async function toggleJobSource(id: string, enabled: boolean) {
-  await requireUserId();
-  await db.update(jobSources).set({ enabled, consecutiveFailures: 0 }).where(eq(jobSources.id, id));
-  revalidatePath("/dashboard/sources");
-}
-
-export async function deleteJobSource(id: string) {
-  await requireUserId();
-  await db.delete(jobSources).where(eq(jobSources.id, id));
-  revalidatePath("/dashboard/sources");
-}
+// Job sources (which Telegram channels etc. to watch) are curated directly
+// in the database rather than through the app UI — see SETUP.md. That's a
+// deliberate simplification: picking/vetting a source is a judgment call,
+// not something to hand a non-technical user a raw JSON config form for.
 
 export async function updateMatchStatus(matchId: string, status: (typeof matches.$inferInsert)["status"]) {
   const userId = await requireUserId();

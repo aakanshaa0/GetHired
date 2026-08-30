@@ -35,7 +35,12 @@ Create an account at [resend.com](https://resend.com) and an API key -> `RESEND_
 3. Push the schema to your Supabase database: `npx drizzle-kit push` (schema.ts declares a stub `auth.users` table purely so Drizzle can add foreign keys to it — Supabase already owns that table, and the checked-in migration has the stub's own `CREATE TABLE` stripped out; if you ever regenerate migrations from a schema change, re-check the new SQL file for a stray `CREATE TABLE "auth"."users"` and delete it before applying)
 4. Seed the company whitelist: `npx tsx scripts/seed.ts`
 5. `npm run dev`, open `http://localhost:3000`, sign in with your email (magic link).
-6. On the **Sources** page, add a Telegram source with config `{"channel": "<some public job-posting channel's username, no @>"}`.
+6. Add a Telegram source directly in the database — there's no in-app UI for this by design (picking/vetting a channel is a judgment call, not something to hand a non-technical user a raw JSON form for). Run this once you have a public channel's username (no `@`):
+   ```sql
+   insert into job_sources (type, name, config, enabled, poll_interval_minutes)
+   values ('telegram', 'My channel', '{"channel": "the_channel_username"}', true, 30);
+   ```
+   via the Supabase SQL Editor, or with `psql "$DATABASE_URL" -c "..."` / any Postgres client using the connection string from step 1.4.
 7. Fill in your **Profile**, upload a **CV**, add a default **Referral template**.
 8. Manually run the pipeline once to test end-to-end:
    ```

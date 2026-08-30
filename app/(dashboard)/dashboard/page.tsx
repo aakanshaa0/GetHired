@@ -21,7 +21,7 @@ export default async function DashboardOverviewPage() {
   const userCvs = await db.select().from(cvs).where(eq(cvs.userId, userId));
   const enabledSources = await db.select().from(jobSources).where(eq(jobSources.enabled, true));
 
-  const needsSetup = !profile || userCvs.length === 0 || enabledSources.length === 0;
+  const needsSetup = !profile || userCvs.length === 0;
 
   return (
     <div className="flex flex-col gap-8">
@@ -44,11 +44,6 @@ export default async function DashboardOverviewPage() {
             {userCvs.length === 0 && (
               <li>
                 <Link href="/dashboard/cvs" className="underline">Upload at least one CV</Link>
-              </li>
-            )}
-            {enabledSources.length === 0 && (
-              <li>
-                <Link href="/dashboard/sources" className="underline">Enable a job source</Link>
               </li>
             )}
           </ul>
