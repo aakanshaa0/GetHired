@@ -7,6 +7,7 @@ import { getAdapter } from "../lib/adapters/registry";
 import type { SourceType, NormalizedJob, RawJob, JobSourceAdapter } from "../lib/adapters/types";
 import { extractJobFields } from "../lib/llm/extractJobFields";
 import { touchCompany } from "../lib/legitimacy/companyCache";
+import { computeDedupeHash } from "../lib/matching/dedupe";
 
 const CIRCUIT_BREAKER_THRESHOLD = 5;
 
@@ -52,7 +53,7 @@ async function processRawJob(
   item: RawJob,
   adapter: JobSourceAdapter,
   sourceType: SourceType
-): Promise<"normalized" | "skipped"> {
+): Promise<"normalized" | "skipped" | "duplicate"> {
   let normalized = adapter.normalize(item);
   if (!normalized) {
     normalized = await normalizedFromLlmFallback(item.rawText, item.sourceUrl, item.postedAt);
@@ -64,6 +65,20 @@ async function processRawJob(
       .set({ processed: true, processingError: "Could not extract a job posting from this text" })
       .where(eq(rawJobs.id, rawJobId));
     return "skipped";
+  }
+
+  // Channels commonly repost the identical opportunity as a separate message
+  // (a "pinned" wrapper plus a plain duplicate, or a manual repost) — each
+  // gets its own external_id, so the raw_jobs uniqueness check above never
+  // catches it. Company+title normalized together catches it here instead.
+  const dedupeHash = computeDedupeHash(normalized.companyName, normalized.title);
+  const [existingJob] = await db.select({ id: jobs.id }).from(jobs).where(eq(jobs.dedupeHash, dedupeHash)).limit(1);
+  if (existingJob) {
+    await db
+      .update(rawJobs)
+      .set({ processed: true, processingError: null })
+      .where(eq(rawJobs.id, rawJobId));
+    return "duplicate";
   }
 
   const company = await touchCompany(normalized.companyName);
@@ -86,6 +101,7 @@ async function processRawJob(
     applyUrl: normalized.applyUrl,
     postedAt: normalized.postedAt,
     descriptionText: normalized.descriptionText,
+    dedupeHash,
   });
 
   await db.update(rawJobs).set({ processed: true, processingError: null }).where(eq(rawJobs.id, rawJobId));
@@ -98,6 +114,7 @@ async function ingestSource(sourceRow: typeof jobSources.$inferSelect) {
 
   let rawCount = 0;
   let normalizedCount = 0;
+  let duplicateCount = 0;
 
   try {
     const rawItems = await adapter.fetchRaw(sourceRow.config as Record<string, unknown>);
@@ -121,6 +138,7 @@ async function ingestSource(sourceRow: typeof jobSources.$inferSelect) {
 
       const outcome = await processRawJob(inserted.id, item, adapter, sourceRow.type);
       if (outcome === "normalized") normalizedCount++;
+      if (outcome === "duplicate") duplicateCount++;
     }
 
     // Retry postings that failed extraction on a previous run — e.g. an
@@ -142,6 +160,7 @@ async function ingestSource(sourceRow: typeof jobSources.$inferSelect) {
       };
       const outcome = await processRawJob(failedRow.id, item, adapter, sourceRow.type);
       if (outcome === "normalized") normalizedCount++;
+      if (outcome === "duplicate") duplicateCount++;
     }
 
     await db
@@ -155,7 +174,7 @@ async function ingestSource(sourceRow: typeof jobSources.$inferSelect) {
       .where(eq(ingestionRuns.id, run.id));
 
     console.log(
-      `[${sourceRow.type}:${sourceRow.name}] fetched ${rawCount}, normalized ${normalizedCount}${
+      `[${sourceRow.type}:${sourceRow.name}] fetched ${rawCount}, normalized ${normalizedCount}, ${duplicateCount} duplicate(s) skipped${
         previouslyFailed.length > 0 ? ` (retried ${previouslyFailed.length} previously-failed)` : ""
       }`
     );
@@ -180,7 +199,7 @@ async function ingestSource(sourceRow: typeof jobSources.$inferSelect) {
 
     console.error(
       `[${sourceRow.type}:${sourceRow.name}] failed (${failures}/${CIRCUIT_BREAKER_THRESHOLD} consecutive): ${message}${
-        shouldDisable ? " — source auto-disabled, re-enable it from the Sources page once fixed." : ""
+        shouldDisable ? " — source auto-disabled, re-enable it with an UPDATE on job_sources (see SETUP.md) once fixed." : ""
       }`
     );
   }
@@ -195,7 +214,7 @@ async function main() {
     .where(and(eq(jobSources.type, source), eq(jobSources.enabled, true)));
 
   if (sources.length === 0) {
-    console.log(`No enabled "${source}" sources configured — add one from the Sources page first.`);
+    console.log(`No enabled "${source}" sources configured — add one via job_sources (see SETUP.md) first.`);
     return;
   }
 

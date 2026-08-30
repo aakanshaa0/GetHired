@@ -55,8 +55,9 @@ Set `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` from the output, `NEXT_PUBLIC_VAP
    npx tsx scripts/ingest.ts --source=telegram
    npx tsx scripts/run-legitimacy-scoring.ts
    npx tsx scripts/process-new-jobs.ts
+   npx tsx scripts/send-daily-digest.ts
    ```
-   Check the **Matches** page and your inbox.
+   Check the **Matches** page (new ones show a red dot until opened, and the sidebar bell badges the total) and your inbox.
 
 ## 6. Deploy (Vercel + GitHub Actions)
 
@@ -64,12 +65,16 @@ Set `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` from the output, `NEXT_PUBLIC_VAP
 2. Import it into [Vercel](https://vercel.com/new). Add the same env vars from `.env.local` in the Vercel project settings (Settings -> Environment Variables), with `NEXT_PUBLIC_APP_URL` set to your Vercel production URL. Deploy.
 3. Add that same production URL + `/auth/callback` to Supabase's Redirect URLs (step 1.5 above).
 4. In the GitHub repo -> **Settings -> Secrets and variables -> Actions**, add these repository secrets: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_URL` (your Vercel URL), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`.
-5. The `.github/workflows/ingest-telegram.yml` workflow runs every ~30 minutes automatically once these secrets exist. You can also trigger it manually from the repo's **Actions** tab ("Run workflow") to test it without waiting.
+5. Two scheduled workflows run automatically once these secrets exist: `.github/workflows/ingest-telegram.yml` (every ~3 hours — ingest, score, match, instant push) and `.github/workflows/daily-digest.yml` (once a day at 09:00 IST — the one summary email). Trigger either manually from the repo's **Actions** tab ("Run workflow") to test without waiting.
 
 ## What's implemented vs. stubbed
 
 Only the **Telegram** source adapter is functional (scrapes public `t.me/s/<channel>` preview pages — no login needed). **Naukri, Wellfound, LinkedIn, and foundit** are stubbed in `lib/adapters/` and currently return zero results — see the comments at the top of each file for the intended approach and recommended build order (Wellfound -> Naukri -> foundit -> LinkedIn last, since LinkedIn is the most fragile/highest-ToS-risk to scrape). Sources are added directly in the database (§5.6 above), not through the app UI. Adding an adapter is a matter of implementing `fetchRaw`/`normalize` in that file; nothing else in the pipeline needs to change.
 
-**Web push notifications are implemented** (Phase 2) — instant (above-threshold) matches send both email and, for any device where the user clicked "Enable push notifications" on Settings, a push notification carrying just the job title/company and a deep link. Digest (unknown-salary) matches stay email-only.
+**Web push notifications are implemented** (Phase 2) — above-threshold matches fire an instant push (title/company + deep link) to any device where the user clicked "Enable push notifications" on Settings, plus a red badge on the sidebar bell and a red dot on the posting itself until it's opened.
+
+**Email is a single daily digest, not per-match.** `scripts/process-new-jobs.ts` only creates matches and fires instant push; it never sends email. `scripts/send-daily-digest.ts` runs once a day and sends exactly one email per user covering every match (any salary bucket) that doesn't already have an email notification recorded — so it's safe to run more than once without double-emailing.
+
+**Duplicate postings are deduped at the job level.** Channels commonly repost the identical opportunity as a separate message (a "pinned" wrapper plus a plain duplicate) — each gets its own Telegram message id, so the raw-message uniqueness check doesn't catch it. `jobs.dedupe_hash` (normalized company + title) does.
 
 **No autonomous auto-apply.** The app never logs into or submits forms on LinkedIn/Naukri/Wellfound/foundit — by design, since that violates their Terms of Service and risks your account. Every match ends at a real "Open apply link" you click yourself, with the CV and referral message already prepared.

@@ -2,9 +2,11 @@ name: Ingest jobs and notify
 
 on:
   schedule:
-    # Every 30 minutes. GitHub Actions cron can lag under load — treat this
-    # as "at least every ~30-60 min," not exact.
-    - cron: "*/30 * * * *"
+    # Every 3 hours. GitHub Actions cron can lag under load — treat this as
+    # "at least every ~3-3.5 hours," not exact. This is the real-time-ish
+    # path (creates matches, fires instant push) — email is a separate once-
+    # daily job (see daily-digest.yml) so users aren't emailed every cycle.
+    - cron: "0 */3 * * *"
   workflow_dispatch: {}
 
 jobs:
@@ -42,5 +44,5 @@ jobs:
       - name: Score legitimacy
         run: npx tsx scripts/run-legitimacy-scoring.ts
 
-      - name: Match + notify
+      - name: Match + instant push notify
         run: npx tsx scripts/process-new-jobs.ts

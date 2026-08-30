@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { eq, inArray, desc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { MapPin, IndianRupee, Inbox } from "lucide-react";
 import { db } from "@/lib/db/client";
 import { matches, jobs } from "@/lib/db/schema";
@@ -15,15 +15,6 @@ export default async function MatchesPage() {
     .innerJoin(jobs, eq(matches.jobId, jobs.id))
     .where(eq(matches.userId, user.id))
     .orderBy(desc(matches.createdAt));
-
-  // Clears the sidebar's "new matches" badge on this visit — uses the
-  // already-fetched `rows` snapshot for rendering below, so items still show
-  // their real "New" status for this pageview even though the DB now
-  // reflects them as viewed.
-  const newMatchIds = rows.filter((r) => r.match.status === "suggested").map((r) => r.match.id);
-  if (newMatchIds.length > 0) {
-    await db.update(matches).set({ status: "viewed", updatedAt: new Date() }).where(inArray(matches.id, newMatchIds));
-  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -45,7 +36,13 @@ export default async function MatchesPage() {
                 className="flex flex-col gap-2 p-4 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
-                  <p className="font-medium text-slate-900">
+                  <p className="flex items-center gap-2 font-medium text-slate-900">
+                    {match.status === "suggested" && (
+                      <span
+                        aria-label="Unseen"
+                        className="h-2 w-2 shrink-0 rounded-full bg-rose-500"
+                      />
+                    )}
                     {job.title} <span className="text-slate-400">·</span> {job.companyName}
                   </p>
                   <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">

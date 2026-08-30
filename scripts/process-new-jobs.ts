@@ -6,25 +6,16 @@ import { jobs, matches, cvs, profiles, referralTemplates, notifications, pushSub
 import { evaluateSalary } from "../lib/matching/salaryFilter";
 import { pickBestCv } from "../lib/matching/cvMatcher";
 import { buildApplicationPackage } from "../lib/matching/buildApplicationPackage";
-import { sendMatchEmail, sendDigestEmail } from "../lib/notifications/email";
 import { sendPushNotification } from "../lib/notifications/push";
-import { createAdminClient } from "../lib/supabase/admin";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-async function getUserEmail(userId: string): Promise<string | null> {
-  const admin = createAdminClient();
-  const { data, error } = await admin.auth.admin.getUserById(userId);
-  if (error || !data?.user?.email) return null;
-  return data.user.email;
-}
-
 /**
  * Web push carries only title/company + a deep link — rich content (CV
- * pick, referral text, legitimacy reasoning) stays in-app, matching the
- * plan's scope for this channel. Only used for instant (above-threshold)
- * matches; digest items stay email-only rather than firing one push per
- * batched item.
+ * pick, referral text, legitimacy reasoning) stays in-app. This is the only
+ * *instant* notification channel; email is deliberately a once-daily digest
+ * instead (see scripts/send-daily-digest.ts) — this script only creates the
+ * matches it covers, never sends email itself.
  */
 async function notifyPushSubscribers(userId: string, job: { title: string; companyName: string }, matchUrl: string) {
   const subs = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
@@ -75,13 +66,7 @@ async function main() {
       .from(referralTemplates)
       .where(and(eq(referralTemplates.userId, profile.id), eq(referralTemplates.isDefault, true)));
 
-    const email = await getUserEmail(profile.id);
-    const digestItems: Array<{
-      job: (typeof candidateJobs)[number];
-      pkg: ReturnType<typeof buildApplicationPackage>;
-      matchUrl: string;
-      notificationId: string;
-    }> = [];
+    let createdCount = 0;
 
     for (const job of candidateJobs) {
       const salaryResult = evaluateSalary(job, profile.minSalaryLpa);
@@ -105,32 +90,10 @@ async function main() {
           status: "suggested",
         })
         .returning();
-
-      const matchUrl = `${APP_URL}/dashboard/matches/${match.id}`;
-
-      if (!email) {
-        console.warn(`No email on file for user ${profile.id}; skipping notification for match ${match.id}`);
-        continue;
-      }
+      createdCount++;
 
       if (salaryResult === "above_threshold") {
-        const [notif] = await db
-          .insert(notifications)
-          .values({ matchId: match.id, channel: "email", payload: { instant: true } })
-          .returning();
-        try {
-          await sendMatchEmail({ to: email, job, pkg, matchUrl });
-          await db
-            .update(notifications)
-            .set({ status: "sent", sentAt: new Date() })
-            .where(eq(notifications.id, notif.id));
-        } catch (err) {
-          await db
-            .update(notifications)
-            .set({ status: "failed", error: err instanceof Error ? err.message : String(err) })
-            .where(eq(notifications.id, notif.id));
-        }
-
+        const matchUrl = `${APP_URL}/dashboard/matches/${match.id}`;
         const pushStatus = await notifyPushSubscribers(profile.id, job, matchUrl);
         if (pushStatus) {
           await db.insert(notifications).values({
@@ -141,38 +104,10 @@ async function main() {
             payload: { instant: true },
           });
         }
-      } else {
-        const [notif] = await db
-          .insert(notifications)
-          .values({ matchId: match.id, channel: "email", payload: { instant: false, digest: true } })
-          .returning();
-        digestItems.push({ job, pkg, matchUrl, notificationId: notif.id });
       }
     }
 
-    if (digestItems.length > 0 && email) {
-      try {
-        await sendDigestEmail({ to: email, items: digestItems });
-        await Promise.all(
-          digestItems.map(({ notificationId }) =>
-            db
-              .update(notifications)
-              .set({ status: "sent", sentAt: new Date() })
-              .where(eq(notifications.id, notificationId))
-          )
-        );
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        await Promise.all(
-          digestItems.map(({ notificationId }) =>
-            db.update(notifications).set({ status: "failed", error: message }).where(eq(notifications.id, notificationId))
-          )
-        );
-        console.error("Digest email failed:", err);
-      }
-    }
-
-    console.log(`[user ${profile.id}] processed ${candidateJobs.length} candidate job(s), ${digestItems.length} in digest.`);
+    console.log(`[user ${profile.id}] created ${createdCount} new match(es) from ${candidateJobs.length} candidate job(s).`);
   }
 }
 

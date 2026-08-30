@@ -40,22 +40,13 @@ function renderMatchHtml(job: Job, pkg: ApplicationPackage, matchUrl: string): s
   `;
 }
 
-export async function sendMatchEmail(params: {
-  to: string;
-  job: Job;
-  pkg: ApplicationPackage;
-  matchUrl: string;
-}) {
-  const resend = getResend();
-  await resend.emails.send({
-    from: fromAddress(),
-    to: params.to,
-    subject: `New match: ${params.job.title} at ${params.job.companyName}`,
-    html: renderMatchHtml(params.job, params.pkg, params.matchUrl),
-  });
-}
-
-export async function sendDigestEmail(params: {
+/**
+ * The only email GetHired sends — one per day, covering every match found
+ * since the last one (see scripts/send-daily-digest.ts). Deliberately not
+ * one-email-per-match: real-time awareness lives in web push + the sidebar
+ * bell instead, so email stays a single daily summary rather than a stream.
+ */
+export async function sendDailyDigestEmail(params: {
   to: string;
   items: Array<{ job: Job; pkg: ApplicationPackage; matchUrl: string }>;
 }) {
@@ -69,7 +60,7 @@ export async function sendDigestEmail(params: {
   await resend.emails.send({
     from: fromAddress(),
     to: params.to,
-    subject: `${params.items.length} job${params.items.length === 1 ? "" : "s"} with unstated salary — daily digest`,
-    html: `<p>These matched your target roles but didn't state a salary, so they're grouped here instead of sent instantly.</p>${body}`,
+    subject: `${params.items.length} new job match${params.items.length === 1 ? "" : "es"} today`,
+    html: `<p>Everything GetHired found for you since your last email:</p>${body}`,
   });
 }
