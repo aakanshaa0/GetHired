@@ -29,12 +29,12 @@ export default function Sidebar({ onSignOut }: { onSignOut: () => Promise<void> 
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 px-5 py-5 font-semibold text-slate-900">
+      <Link href="/" className="flex items-center gap-2 px-5 py-5 font-semibold text-slate-900">
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600 text-white">
           <Briefcase className="h-4.5 w-4.5" />
         </span>
         GetHired
-      </div>
+      </Link>
 
       <nav className="flex flex-1 flex-col gap-0.5 overflow-x-auto px-3 sm:overflow-visible">
         <div className="flex gap-0.5 sm:flex-col">

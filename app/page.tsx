@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/marketing/Navbar";
 import Hero from "@/components/marketing/Hero";
@@ -12,19 +11,18 @@ export default async function Home() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  if (user) redirect("/dashboard");
+  const isAuthenticated = Boolean(user);
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Navbar />
+      <Navbar isAuthenticated={isAuthenticated} />
       <main className="flex-1">
-        <Hero />
+        <Hero isAuthenticated={isAuthenticated} />
         <Features />
         <TrustedCompanies />
         <HowItWorks />
       </main>
-      <Footer />
+      <Footer isAuthenticated={isAuthenticated} />
     </div>
   );
 }

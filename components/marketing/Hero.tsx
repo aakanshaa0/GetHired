@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 
-export default function Hero() {
+export default function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <section className="relative overflow-hidden">
       <div
@@ -23,8 +23,8 @@ export default function Hero() {
             referral message and a staged application, CV already picked.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <Link href="/login" className="btn-primary px-6 py-3 text-base">
-              Get started <ArrowRight className="h-4 w-4" />
+            <Link href={isAuthenticated ? "/dashboard" : "/login"} className="btn-primary px-6 py-3 text-base">
+              {isAuthenticated ? "Go to dashboard" : "Get started"} <ArrowRight className="h-4 w-4" />
             </Link>
             <a href="#how-it-works" className="btn-secondary px-6 py-3 text-base">
               See how it works

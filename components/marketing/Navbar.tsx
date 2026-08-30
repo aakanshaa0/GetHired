@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Briefcase } from "lucide-react";
 
-export default function Navbar() {
+export default function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -19,8 +19,8 @@ export default function Navbar() {
             How it works
           </a>
         </nav>
-        <Link href="/login" className="btn-primary">
-          Sign in
+        <Link href={isAuthenticated ? "/dashboard" : "/login"} className="btn-primary">
+          {isAuthenticated ? "Dashboard" : "Sign in"}
         </Link>
       </div>
     </header>
