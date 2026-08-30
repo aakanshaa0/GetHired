@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 import { eq, and } from "drizzle-orm";
-import { MapPin, IndianRupee, ExternalLink, Download, ShieldCheck, FileStack } from "lucide-react";
+import { MapPin, IndianRupee, Clock, ExternalLink, Download, ShieldCheck, FileStack } from "lucide-react";
 import { db } from "@/lib/db/client";
 import { matches, jobs, cvs } from "@/lib/db/schema";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { updateMatchStatus, overrideMatchCv, overrideLegitimacy } from "@/lib/actions";
 import { LegitimacyBadge } from "@/components/badges";
+import { formatRelativeTime } from "@/lib/formatRelativeTime";
 import CopyButton from "./CopyButton";
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -51,6 +52,10 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
           <span className="flex items-center gap-1">
             <IndianRupee className="h-3.5 w-3.5" />
             {job.salaryRawText ?? "Not stated"}
+          </span>
+          <span className="flex items-center gap-1" title={match.createdAt.toLocaleString("en-IN")}>
+            <Clock className="h-3.5 w-3.5" />
+            {formatRelativeTime(match.createdAt)}
           </span>
           <span className="badge-neutral">via {job.sourceType}</span>
         </p>

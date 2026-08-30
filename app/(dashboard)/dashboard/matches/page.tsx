@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { eq, desc } from "drizzle-orm";
-import { MapPin, IndianRupee, Inbox } from "lucide-react";
+import { MapPin, IndianRupee, Clock, Inbox } from "lucide-react";
 import { db } from "@/lib/db/client";
 import { matches, jobs } from "@/lib/db/schema";
 import { requireUser } from "@/lib/supabase/server";
 import { LegitimacyBadge, StatusBadge } from "@/components/badges";
+import { formatRelativeTime } from "@/lib/formatRelativeTime";
 
 export default async function MatchesPage() {
   const user = await requireUser();
@@ -54,6 +55,10 @@ export default async function MatchesPage() {
                     <span className="flex items-center gap-1">
                       <IndianRupee className="h-3.5 w-3.5" />
                       {job.salaryRawText ?? "Not stated"}
+                    </span>
+                    <span className="flex items-center gap-1" title={match.createdAt.toLocaleString("en-IN")}>
+                      <Clock className="h-3.5 w-3.5" />
+                      {formatRelativeTime(match.createdAt)}
                     </span>
                   </p>
                 </div>
