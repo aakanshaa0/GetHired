@@ -31,10 +31,33 @@ export async function updateProfileDetails(formData: FormData) {
     .split(",")
     .map((r) => r.trim())
     .filter(Boolean);
+  const skills = String(formData.get("skills") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const githubUrl = String(formData.get("githubUrl") ?? "").trim() || null;
+  const linkedinUrl = String(formData.get("linkedinUrl") ?? "").trim() || null;
+  const leetcodeUrl = String(formData.get("leetcodeUrl") ?? "").trim() || null;
+  const portfolioUrl = String(formData.get("portfolioUrl") ?? "").trim() || null;
+  const experienceSummary = String(formData.get("experienceSummary") ?? "").trim() || null;
+  const achievementsSummary = String(formData.get("achievementsSummary") ?? "").trim() || null;
 
   await db
     .update(profiles)
-    .set({ fullName, college, yearsExperience, targetRoles, updatedAt: new Date() })
+    .set({
+      fullName,
+      college,
+      yearsExperience,
+      targetRoles,
+      skills,
+      githubUrl,
+      linkedinUrl,
+      leetcodeUrl,
+      portfolioUrl,
+      experienceSummary,
+      achievementsSummary,
+      updatedAt: new Date(),
+    })
     .where(eq(profiles.id, userId));
 
   revalidatePath("/dashboard/profile");

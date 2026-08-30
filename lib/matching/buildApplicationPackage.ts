@@ -40,6 +40,13 @@ export function buildApplicationPackage(params: {
         years_experience: profile.yearsExperience != null ? String(profile.yearsExperience) : "",
         target_track: cv?.roleTag ?? "",
         job_url: job.applyUrl,
+        skills: profile.skills.join(", "),
+        github_url: profile.githubUrl ?? "",
+        linkedin_url: profile.linkedinUrl ?? "",
+        leetcode_url: profile.leetcodeUrl ?? "",
+        portfolio_url: profile.portfolioUrl ?? "",
+        experience_summary: profile.experienceSummary ?? "",
+        achievements_summary: profile.achievementsSummary ?? "",
       })
     : null;
 

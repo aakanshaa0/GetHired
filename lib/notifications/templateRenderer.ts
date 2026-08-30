@@ -6,6 +6,13 @@ export const TEMPLATE_PLACEHOLDERS = [
   "years_experience",
   "target_track",
   "job_url",
+  "skills",
+  "github_url",
+  "linkedin_url",
+  "leetcode_url",
+  "portfolio_url",
+  "experience_summary",
+  "achievements_summary",
 ] as const;
 
 export type TemplateVars = Record<(typeof TEMPLATE_PLACEHOLDERS)[number], string>;
