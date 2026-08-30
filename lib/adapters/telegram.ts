@@ -9,8 +9,16 @@ export interface TelegramSourceConfig {
   maxPages?: number;
 }
 
-const TITLE_HINT = /(?:hiring|role|position|opening|profile)\s*[:\-]\s*(.+)/i;
-const COMPANY_HINT = /(?:company|organi[sz]ation|client)\s*[:\-]\s*(.+)/i;
+// Real channels run fields together with no separator at all in some post
+// variants (e.g. "Company name: CoinDCXRole: Engineering InternBatch
+// Eligible: ..." — no newlines, no spaces between one field's value and the
+// next label). A plain "(.+)" capture would swallow the rest of the message
+// as the company name. Bounding the capture with a lookahead for the next
+// known label (or end of string) fixes both the newline-separated and the
+// jammed-together formats with the same pattern.
+const NEXT_LABEL = "(?:company name|company|organi[sz]ation|client|role|position|hiring|opening|profile|batch eligible|eligibility|expected stipend|stipend|salary|location|apply link|challenge name)\\s*[:\\-]";
+const TITLE_HINT = new RegExp(`(?:hiring|role|position|opening|profile)\\s*[:\\-]\\s*(.+?)(?=\\s*${NEXT_LABEL}|$)`, "i");
+const COMPANY_HINT = new RegExp(`(?:company name|company|organi[sz]ation|client)\\s*[:\\-]\\s*(.+?)(?=\\s*${NEXT_LABEL}|$)`, "i");
 const REMOTE_HINT = /\b(remote|work from home|wfh)\b/i;
 
 function extractOldestPostId(html: string): string | null {

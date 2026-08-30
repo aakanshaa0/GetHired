@@ -7,10 +7,16 @@ export interface ParsedSalary {
   rawText: string;
 }
 
-const LPA_RANGE = /(\d+(?:\.\d+)?)\s*(?:-|to|–)\s*(\d+(?:\.\d+)?)\s*(?:lpa|lakhs?\s*(?:per\s*annum|p\.?a\.?)?)/i;
-const LPA_SINGLE = /(\d+(?:\.\d+)?)\s*(?:lpa|lakhs?\s*(?:per\s*annum|p\.?a\.?)?)/i;
+const LPA_RANGE = /(\d+(?:\.\d+)?)\s*(?:-|to|–)\s*(\d+(?:\.\d+)?)\s*(?:lpa|(?:lakhs?|lacs?)\s*(?:per\s*annum|p\.?a\.?)?)/i;
+const LPA_SINGLE = /(\d+(?:\.\d+)?)\s*(?:lpa|(?:lakhs?|lacs?)\s*(?:per\s*annum|p\.?a\.?)?)/i;
 const RUPEE_ANNUAL_RANGE =
   /(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d+)?)\s*(?:-|to|–)\s*(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d+)?)\s*(?:\/|per\s*)?\s*(?:year|annum|yr|pa)\b/i;
+// "Lacs/Lakhs per month" (vs. the LPA patterns' "per annum") — must be
+// checked before LPA_SINGLE, whose "per annum" suffix is optional and would
+// otherwise match "1.1 Lacs" alone and misread it as an annual figure
+// (12x too low) instead of a monthly one.
+const LAKHS_MONTHLY_RANGE = /(\d+(?:\.\d+)?)\s*(?:-|to|–)\s*(\d+(?:\.\d+)?)\s*(?:lakhs?|lacs?)\s*per\s*month/i;
+const LAKHS_MONTHLY_SINGLE = /(\d+(?:\.\d+)?)\s*(?:lakhs?|lacs?)\s*per\s*month/i;
 const MONTHLY_K_RANGE = /(\d+(?:\.\d+)?)\s*k\s*(?:-|to|–)\s*(\d+(?:\.\d+)?)\s*k\s*(?:\/|per)?\s*month/i;
 const MONTHLY_K_SINGLE = /(\d+(?:\.\d+)?)\s*k\s*(?:\/|per)?\s*month/i;
 const RUPEE_MONTHLY = /(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d+)?)\s*(?:\/|per)?\s*month/i;
@@ -25,7 +31,32 @@ function toNumber(raw: string): number {
  * back to LLM-based extraction rather than guessing.
  */
 export function parseSalaryFromText(text: string): ParsedSalary | null {
-  let m = text.match(LPA_RANGE);
+  let m = text.match(LAKHS_MONTHLY_RANGE);
+  if (m) {
+    return {
+      min: toNumber(m[1]) * 100000 * 12,
+      max: toNumber(m[2]) * 100000 * 12,
+      currency: "INR",
+      period: "annual",
+      confidence: "known",
+      rawText: m[0],
+    };
+  }
+
+  m = text.match(LAKHS_MONTHLY_SINGLE);
+  if (m) {
+    const value = toNumber(m[1]) * 100000 * 12;
+    return {
+      min: value,
+      max: value,
+      currency: "INR",
+      period: "annual",
+      confidence: "known",
+      rawText: m[0],
+    };
+  }
+
+  m = text.match(LPA_RANGE);
   if (m) {
     return {
       min: toNumber(m[1]) * 100000,
